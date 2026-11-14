@@ -1,0 +1,1123 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta
+    name="description"
+    content="1부터 100 사이의 숫자를 10번 안에 맞히는 Up & Down 게임"
+  />
+  <title>Up & Down 숫자 맞히기</title>
+
+  <script>
+    (() => {
+      const savedTheme = localStorage.getItem("updown-theme");
+      const systemDark = window.matchMedia?.("(prefers-color-scheme: dark)").matches;
+      const initialTheme = savedTheme || (systemDark ? "dark" : "light");
+      document.documentElement.dataset.theme = initialTheme;
+    })();
+  </script>
+
+  <style>
+:root {
+  color-scheme: light;
+
+  --page-bg-1: #f6f7ff;
+  --page-bg-2: #e9edff;
+  --glow: rgba(117, 128, 255, 0.25);
+  --card: rgba(255, 255, 255, 0.92);
+  --surface: #f7f8fc;
+  --surface-strong: #ffffff;
+  --text: #20263a;
+  --muted: #697189;
+  --border: #dfe3ef;
+  --primary: #5966e9;
+  --primary-hover: #4653d4;
+  --primary-soft: #eef0ff;
+  --primary-border: #d9ddff;
+  --focus: rgba(89, 102, 233, 0.2);
+  --shadow: 0 28px 70px rgba(59, 70, 125, 0.17);
+  --input-disabled: #eff1f6;
+
+  --up: #e46e2f;
+  --up-soft: #fff2e9;
+  --up-border: #ffd3b9;
+  --down: #3477df;
+  --down-soft: #edf5ff;
+  --down-border: #c9dfff;
+  --success: #208c5c;
+  --success-soft: #eaf8f1;
+  --success-border: #bbe5cf;
+  --danger: #d84646;
+  --danger-soft: #fff0f0;
+  --danger-border: #ffc6c6;
+}
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+
+  --page-bg-1: #101424;
+  --page-bg-2: #181d33;
+  --glow: rgba(114, 126, 255, 0.2);
+  --card: rgba(28, 34, 57, 0.94);
+  --surface: #242a43;
+  --surface-strong: #1c2238;
+  --text: #f5f6ff;
+  --muted: #aeb5cc;
+  --border: #3b425f;
+  --primary: #8d97ff;
+  --primary-hover: #a6aeff;
+  --primary-soft: #2c3358;
+  --primary-border: #4b568e;
+  --focus: rgba(141, 151, 255, 0.25);
+  --shadow: 0 28px 80px rgba(0, 0, 0, 0.35);
+  --input-disabled: #292f49;
+
+  --up: #ff9a62;
+  --up-soft: #432d29;
+  --up-border: #6e4434;
+  --down: #7eb5ff;
+  --down-soft: #25354d;
+  --down-border: #39567c;
+  --success: #63d49b;
+  --success-soft: #233d35;
+  --success-border: #35614e;
+  --danger: #ff8383;
+  --danger-soft: #462a33;
+  --danger-border: #743e49;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-width: 320px;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+  color: var(--text);
+  font-family: Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans KR", sans-serif;
+  background:
+    radial-gradient(circle at 15% 10%, var(--glow), transparent 35%),
+    radial-gradient(circle at 90% 85%, var(--glow), transparent 30%),
+    linear-gradient(135deg, var(--page-bg-1), var(--page-bg-2));
+  transition: color 180ms ease, background 180ms ease;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:focus-visible,
+input:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.page-shell {
+  display: grid;
+  min-height: 100vh;
+  padding: 32px 18px;
+  place-items: center;
+}
+
+.game-card {
+  width: min(100%, 520px);
+  padding: 36px;
+  overflow: hidden;
+  background: var(--card);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 28px;
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(16px);
+}
+
+.game-header {
+  margin-bottom: 26px;
+}
+
+.top-bar,
+.progress-info,
+.section-heading,
+.range-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.eyebrow {
+  margin: 0;
+  color: var(--primary);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.13em;
+}
+
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 38px;
+  padding: 7px 12px;
+  color: var(--text);
+  font-size: 0.78rem;
+  font-weight: 700;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  transition: transform 120ms ease, background 180ms ease;
+}
+
+.theme-toggle:hover {
+  background: var(--primary-soft);
+}
+
+.theme-toggle:active {
+  transform: scale(0.96);
+}
+
+.game-header h1 {
+  margin: 24px 0 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: clamp(2.35rem, 10vw, 3.6rem);
+  font-weight: 800;
+  line-height: 0.95;
+  letter-spacing: -0.07em;
+}
+
+.game-header h1 span {
+  color: var(--primary);
+}
+
+.description {
+  margin: 13px 0 0;
+  color: var(--muted);
+  font-size: 0.92rem;
+  line-height: 1.6;
+}
+
+.range-panel {
+  margin-bottom: 24px;
+  padding: 17px 19px;
+  background: var(--primary-soft);
+  border: 1px solid var(--primary-border);
+  border-radius: 17px;
+}
+
+.panel-label {
+  display: block;
+  margin-bottom: 3px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.range-value {
+  color: var(--primary);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 1.45rem;
+}
+
+.range-icon {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  font-size: 1.3rem;
+  background: var(--surface-strong);
+  border-radius: 14px;
+  place-items: center;
+}
+
+.guess-form label {
+  display: inline-block;
+  margin-bottom: 9px;
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.input-row {
+  display: flex;
+  gap: 10px;
+}
+
+.input-row input {
+  width: 100%;
+  min-width: 0;
+  height: 54px;
+  padding: 0 16px;
+  color: var(--text);
+  font-size: 1rem;
+  font-weight: 700;
+  background: var(--surface-strong);
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  outline: none;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.input-row input::placeholder {
+  color: var(--muted);
+  font-weight: 500;
+  opacity: 0.8;
+}
+
+.input-row input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 4px var(--focus);
+}
+
+.input-row input.input-error {
+  border-color: var(--danger);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--danger) 15%, transparent);
+}
+
+.input-row input:disabled {
+  color: var(--muted);
+  background: var(--input-disabled);
+  cursor: not-allowed;
+}
+
+.primary-button {
+  flex: 0 0 94px;
+  height: 54px;
+  color: #fff;
+  font-weight: 800;
+  background: var(--primary);
+  border: 0;
+  border-radius: 12px;
+  transition: background 150ms ease, transform 100ms ease;
+}
+
+.primary-button:hover:not(:disabled) {
+  background: var(--primary-hover);
+}
+
+.primary-button:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.primary-button:disabled {
+  background: var(--muted);
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.validation-message {
+  min-height: 22px;
+  margin: 7px 2px 3px;
+  color: var(--danger);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.result-box {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 92px;
+  margin-bottom: 22px;
+  padding: 17px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 17px;
+}
+
+.result-box.animate {
+  animation: result-pop 250ms ease;
+}
+
+.result-icon {
+  display: grid;
+  flex: 0 0 48px;
+  width: 48px;
+  height: 48px;
+  font-size: 1.45rem;
+  background: var(--surface-strong);
+  border-radius: 50%;
+  box-shadow: 0 7px 18px rgba(0, 0, 0, 0.08);
+  place-items: center;
+}
+
+.result-box strong {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 0.98rem;
+}
+
+.result-box p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.83rem;
+  line-height: 1.5;
+}
+
+.result-box.up {
+  background: var(--up-soft);
+  border-color: var(--up-border);
+}
+
+.result-box.up strong {
+  color: var(--up);
+}
+
+.result-box.down {
+  background: var(--down-soft);
+  border-color: var(--down-border);
+}
+
+.result-box.down strong {
+  color: var(--down);
+}
+
+.result-box.correct {
+  background: var(--success-soft);
+  border-color: var(--success-border);
+}
+
+.result-box.correct strong {
+  color: var(--success);
+}
+
+.result-box.lost {
+  background: var(--danger-soft);
+  border-color: var(--danger-border);
+}
+
+.result-box.lost strong {
+  color: var(--danger);
+}
+
+.progress-section {
+  margin-bottom: 25px;
+}
+
+.progress-info {
+  margin-bottom: 10px;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.progress-info strong {
+  margin-left: 4px;
+  color: var(--text);
+}
+
+.progress-track {
+  height: 8px;
+  overflow: hidden;
+  background: var(--border);
+  border-radius: 999px;
+}
+
+.progress-bar {
+  width: 0;
+  height: 100%;
+  background: linear-gradient(90deg, #7c87ff, var(--primary));
+  border-radius: inherit;
+  transition: width 250ms ease;
+}
+
+.history-section {
+  margin-bottom: 19px;
+  padding: 18px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 17px;
+}
+
+.section-heading h2 {
+  margin: 0;
+  font-size: 0.98rem;
+}
+
+.count-badge {
+  padding: 4px 9px;
+  color: var(--primary);
+  font-size: 0.72rem;
+  font-weight: 800;
+  background: var(--primary-soft);
+  border-radius: 999px;
+}
+
+.empty-history {
+  margin: 20px 0 5px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  text-align: center;
+}
+
+.history-list {
+  display: grid;
+  gap: 8px;
+  max-height: 225px;
+  margin: 14px 0 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.history-item {
+  display: grid;
+  grid-template-columns: 36px 1fr auto;
+  align-items: center;
+  gap: 9px;
+  padding: 11px 12px;
+  background: var(--surface-strong);
+  border: 1px solid var(--border);
+  border-radius: 11px;
+}
+
+.history-attempt {
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+
+.history-number {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 1rem;
+}
+
+.history-result {
+  padding: 4px 9px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  border-radius: 999px;
+}
+
+.history-result.up {
+  color: var(--up);
+  background: var(--up-soft);
+}
+
+.history-result.down {
+  color: var(--down);
+  background: var(--down-soft);
+}
+
+.history-result.correct {
+  color: var(--success);
+  background: var(--success-soft);
+}
+
+.restart-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  height: 50px;
+  color: var(--primary);
+  font-weight: 800;
+  background: transparent;
+  border: 2px solid var(--primary);
+  border-radius: 12px;
+  transition: color 150ms ease, background 150ms ease, transform 100ms ease;
+}
+
+.restart-button:hover,
+.restart-button.highlight {
+  color: #fff;
+  background: var(--primary);
+}
+
+.restart-button:active {
+  transform: scale(0.98);
+}
+
+.restart-button.highlight {
+  animation: button-pulse 1.8s infinite;
+}
+
+.keyboard-hint {
+  margin: 13px 0 0;
+  color: var(--muted);
+  font-size: 0.7rem;
+  text-align: center;
+}
+
+kbd {
+  padding: 2px 5px;
+  color: var(--text);
+  font: inherit;
+  font-weight: 700;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-bottom-width: 2px;
+  border-radius: 5px;
+}
+
+@keyframes result-pop {
+  from {
+    opacity: 0.45;
+    transform: translateY(7px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes button-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 var(--focus);
+  }
+  50% {
+    box-shadow: 0 0 0 9px transparent;
+  }
+}
+
+@media (max-width: 540px) {
+  .page-shell {
+    padding: 14px;
+  }
+
+  .game-card {
+    padding: 25px 19px;
+    border-radius: 22px;
+  }
+
+  .top-bar {
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .theme-toggle {
+    padding-inline: 10px;
+  }
+
+  .input-row {
+    flex-direction: column;
+  }
+
+  .primary-button {
+    flex-basis: auto;
+    width: 100%;
+  }
+
+  .progress-info {
+    gap: 8px;
+  }
+}
+
+@media (max-width: 390px) {
+  #theme-label {
+    display: none;
+  }
+
+  .theme-toggle {
+    width: 38px;
+    padding: 0;
+    justify-content: center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+  </style>
+
+</head>
+
+<body>
+  <main class="page-shell">
+    <section class="game-card" aria-labelledby="game-title">
+      <header class="game-header">
+        <div class="top-bar">
+          <p class="eyebrow">NUMBER GUESSING GAME</p>
+
+          <button
+            id="theme-toggle"
+            class="theme-toggle"
+            type="button"
+            aria-pressed="false"
+            aria-label="Dark 모드로 변경"
+          >
+            <span id="theme-icon" aria-hidden="true">🌙</span>
+            <span id="theme-label">Dark 모드</span>
+          </button>
+        </div>
+
+        <h1 id="game-title">UP <span>&amp;</span> DOWN</h1>
+        <p class="description">
+          1부터 100 사이의 숫자를 10번 안에 맞혀보세요!
+        </p>
+      </header>
+
+      <section class="range-panel" aria-label="현재 예상 범위">
+        <div>
+          <span class="panel-label">현재 예상 범위</span>
+          <strong class="range-value">
+            <span id="min-range">1</span>
+            <span aria-hidden="true">–</span>
+            <span id="max-range">100</span>
+          </strong>
+        </div>
+        <span class="range-icon" aria-hidden="true">🎯</span>
+      </section>
+
+      <form id="guess-form" class="guess-form" novalidate>
+        <label for="guess-input">예상 숫자</label>
+
+        <div class="input-row">
+          <input
+            id="guess-input"
+            name="guess"
+            type="number"
+            min="1"
+            max="100"
+            step="1"
+            inputmode="numeric"
+            autocomplete="off"
+            placeholder="1~100 숫자 입력"
+            aria-describedby="validation-message"
+            required
+          />
+          <button id="submit-button" class="primary-button" type="submit">
+            확인
+          </button>
+        </div>
+
+        <p
+          id="validation-message"
+          class="validation-message"
+          role="alert"
+          aria-live="polite"
+        ></p>
+      </form>
+
+      <section
+        id="result-box"
+        class="result-box"
+        aria-live="assertive"
+        aria-atomic="true"
+      >
+        <span id="result-icon" class="result-icon" aria-hidden="true">💡</span>
+        <div>
+          <strong id="result-title">숫자를 입력해 주세요!</strong>
+          <p id="result-description">입력한 숫자와 정답을 비교해 드릴게요.</p>
+        </div>
+      </section>
+
+      <section class="progress-section" aria-label="게임 진행 상황">
+        <div class="progress-info">
+          <span>
+            시도 횟수
+            <strong><span id="attempt-count">0</span> / 10</strong>
+          </span>
+          <span>
+            남은 기회
+            <strong><span id="remaining-count">10</span>회</strong>
+          </span>
+        </div>
+
+        <div
+          id="progress-track"
+          class="progress-track"
+          role="progressbar"
+          aria-label="사용한 시도 횟수"
+          aria-valuemin="0"
+          aria-valuemax="10"
+          aria-valuenow="0"
+        >
+          <div id="progress-bar" class="progress-bar"></div>
+        </div>
+      </section>
+
+      <section class="history-section" aria-labelledby="history-title">
+        <div class="section-heading">
+          <h2 id="history-title">입력 기록</h2>
+          <span id="history-count" class="count-badge">0개</span>
+        </div>
+
+        <p id="empty-history" class="empty-history">
+          아직 입력한 숫자가 없습니다.
+        </p>
+
+        <ol id="history-list" class="history-list"></ol>
+      </section>
+
+      <button id="restart-button" class="restart-button" type="button">
+        <span aria-hidden="true">↻</span>
+        다시 시작
+      </button>
+
+      <p class="keyboard-hint">
+        숫자를 입력하고 <kbd>Enter</kbd>를 눌러도 제출할 수 있습니다.
+      </p>
+    </section>
+  </main>
+  <script>
+document.addEventListener("DOMContentLoaded", () => {
+"use strict";
+
+const MIN_NUMBER = 1;
+const MAX_NUMBER = 100;
+const MAX_ATTEMPTS = 10;
+const THEME_STORAGE_KEY = "updown-theme";
+
+const GAME_STATUS = Object.freeze({
+  PLAYING: "playing",
+  WON: "won",
+  LOST: "lost",
+});
+
+const RESULT = Object.freeze({
+  UP: "up",
+  DOWN: "down",
+  CORRECT: "correct",
+});
+
+const elements = {
+  root: document.documentElement,
+  themeToggle: document.querySelector("#theme-toggle"),
+  themeIcon: document.querySelector("#theme-icon"),
+  themeLabel: document.querySelector("#theme-label"),
+
+  form: document.querySelector("#guess-form"),
+  input: document.querySelector("#guess-input"),
+  submitButton: document.querySelector("#submit-button"),
+  restartButton: document.querySelector("#restart-button"),
+
+  minRange: document.querySelector("#min-range"),
+  maxRange: document.querySelector("#max-range"),
+  validationMessage: document.querySelector("#validation-message"),
+
+  resultBox: document.querySelector("#result-box"),
+  resultIcon: document.querySelector("#result-icon"),
+  resultTitle: document.querySelector("#result-title"),
+  resultDescription: document.querySelector("#result-description"),
+
+  attemptCount: document.querySelector("#attempt-count"),
+  remainingCount: document.querySelector("#remaining-count"),
+  progressTrack: document.querySelector("#progress-track"),
+  progressBar: document.querySelector("#progress-bar"),
+
+  historyCount: document.querySelector("#history-count"),
+  historyList: document.querySelector("#history-list"),
+  emptyHistory: document.querySelector("#empty-history"),
+};
+
+let gameState = createInitialState();
+
+function createInitialState() {
+  return {
+    answer: generateRandomNumber(MIN_NUMBER, MAX_NUMBER),
+    minRange: MIN_NUMBER,
+    maxRange: MAX_NUMBER,
+    attempts: 0,
+    history: [],
+    status: GAME_STATUS.PLAYING,
+  };
+}
+
+function generateRandomNumber(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function initializeTheme() {
+  const currentTheme = elements.root.dataset.theme || "light";
+  applyTheme(currentTheme, false);
+}
+
+function toggleTheme() {
+  const currentTheme = elements.root.dataset.theme;
+  const nextTheme = currentTheme === "dark" ? "light" : "dark";
+  applyTheme(nextTheme, true);
+}
+
+function applyTheme(theme, savePreference) {
+  const isDark = theme === "dark";
+
+  elements.root.dataset.theme = isDark ? "dark" : "light";
+  elements.themeIcon.textContent = isDark ? "☀️" : "🌙";
+  elements.themeLabel.textContent = isDark ? "Light 모드" : "Dark 모드";
+  elements.themeToggle.setAttribute("aria-pressed", String(isDark));
+  elements.themeToggle.setAttribute(
+    "aria-label",
+    isDark ? "Light 모드로 변경" : "Dark 모드로 변경"
+  );
+
+  if (savePreference) {
+    localStorage.setItem(THEME_STORAGE_KEY, isDark ? "dark" : "light");
+  }
+}
+
+function restartGame() {
+  gameState = createInitialState();
+
+  elements.form.reset();
+  elements.input.disabled = false;
+  elements.submitButton.disabled = false;
+  elements.restartButton.classList.remove("highlight");
+
+  clearValidationMessage();
+
+  setResultMessage({
+    type: "",
+    icon: "💡",
+    title: "숫자를 입력해 주세요!",
+    description: "입력한 숫자와 정답을 비교해 드릴게요.",
+  });
+
+  renderGame();
+  elements.input.focus();
+}
+
+function handleSubmit(event) {
+  event.preventDefault();
+
+  if (gameState.status !== GAME_STATUS.PLAYING) {
+    return;
+  }
+
+  clearValidationMessage();
+
+  const validation = validateGuess(elements.input.value);
+
+  if (!validation.isValid) {
+    showValidationMessage(validation.message);
+    return;
+  }
+
+  processGuess(validation.value);
+  elements.input.value = "";
+
+  if (gameState.status === GAME_STATUS.PLAYING) {
+    elements.input.focus();
+  }
+}
+
+function validateGuess(rawValue) {
+  const trimmedValue = rawValue.trim();
+
+  if (trimmedValue === "") {
+    return { isValid: false, message: "숫자를 입력해 주세요." };
+  }
+
+  const value = Number(trimmedValue);
+
+  if (!Number.isFinite(value)) {
+    return { isValid: false, message: "올바른 숫자를 입력해 주세요." };
+  }
+
+  if (!Number.isInteger(value)) {
+    return { isValid: false, message: "소수가 아닌 정수를 입력해 주세요." };
+  }
+
+  if (value < MIN_NUMBER || value > MAX_NUMBER) {
+    return {
+      isValid: false,
+      message: `${MIN_NUMBER}부터 ${MAX_NUMBER} 사이의 숫자를 입력해 주세요.`,
+    };
+  }
+
+  const isDuplicate = gameState.history.some((item) => item.value === value);
+
+  if (isDuplicate) {
+    return {
+      isValid: false,
+      message: "이미 입력한 숫자입니다. 다른 숫자를 입력해 주세요.",
+    };
+  }
+
+  if (value < gameState.minRange || value > gameState.maxRange) {
+    return {
+      isValid: false,
+      message:
+        `현재 예상 범위인 ${gameState.minRange}부터 ` +
+        `${gameState.maxRange} 사이의 숫자를 입력해 주세요.`,
+    };
+  }
+
+  return { isValid: true, value };
+}
+
+function processGuess(guess) {
+  gameState.attempts += 1;
+  let result;
+
+  if (guess < gameState.answer) {
+    result = RESULT.UP;
+    gameState.minRange = Math.max(gameState.minRange, guess + 1);
+
+    setResultMessage({
+      type: RESULT.UP,
+      icon: "⬆️",
+      title: "UP! 더 큰 숫자입니다.",
+      description: `${guess}보다 큰 숫자를 입력해 보세요.`,
+    });
+  } else if (guess > gameState.answer) {
+    result = RESULT.DOWN;
+    gameState.maxRange = Math.min(gameState.maxRange, guess - 1);
+
+    setResultMessage({
+      type: RESULT.DOWN,
+      icon: "⬇️",
+      title: "DOWN! 더 작은 숫자입니다.",
+      description: `${guess}보다 작은 숫자를 입력해 보세요.`,
+    });
+  } else {
+    result = RESULT.CORRECT;
+    gameState.status = GAME_STATUS.WON;
+
+    setResultMessage({
+      type: RESULT.CORRECT,
+      icon: "🎉",
+      title: "정답입니다!",
+      description:
+        `정답 ${gameState.answer}을(를) ` +
+        `${gameState.attempts}번 만에 맞혔습니다.`,
+    });
+  }
+
+  gameState.history.push({
+    value: guess,
+    result,
+    attempt: gameState.attempts,
+  });
+
+  if (
+    gameState.status === GAME_STATUS.PLAYING &&
+    gameState.attempts >= MAX_ATTEMPTS
+  ) {
+    gameState.status = GAME_STATUS.LOST;
+
+    setResultMessage({
+      type: "lost",
+      icon: "😢",
+      title: "기회를 모두 사용했습니다.",
+      description: `정답은 ${gameState.answer}이었습니다.`,
+    });
+  }
+
+  if (gameState.status !== GAME_STATUS.PLAYING) {
+    endGame();
+  }
+
+  renderGame();
+}
+
+function endGame() {
+  elements.input.disabled = true;
+  elements.submitButton.disabled = true;
+  elements.restartButton.classList.add("highlight");
+  elements.restartButton.focus();
+}
+
+function renderGame() {
+  const remainingAttempts = Math.max(MAX_ATTEMPTS - gameState.attempts, 0);
+  const progressPercentage = (gameState.attempts / MAX_ATTEMPTS) * 100;
+
+  elements.minRange.textContent = gameState.minRange;
+  elements.maxRange.textContent = gameState.maxRange;
+  elements.attemptCount.textContent = gameState.attempts;
+  elements.remainingCount.textContent = remainingAttempts;
+  elements.progressBar.style.width = `${progressPercentage}%`;
+  elements.progressTrack.setAttribute("aria-valuenow", gameState.attempts);
+
+  renderHistory();
+}
+
+function renderHistory() {
+  elements.historyList.replaceChildren();
+  elements.historyCount.textContent = `${gameState.history.length}개`;
+  elements.emptyHistory.hidden = gameState.history.length > 0;
+
+  gameState.history.forEach((historyItem) => {
+    const listItem = document.createElement("li");
+    const attempt = document.createElement("span");
+    const number = document.createElement("strong");
+    const result = document.createElement("span");
+
+    listItem.className = "history-item";
+    attempt.className = "history-attempt";
+    number.className = "history-number";
+    result.className = `history-result ${historyItem.result}`;
+
+    attempt.textContent = `${historyItem.attempt}회`;
+    number.textContent = historyItem.value;
+    result.textContent = getResultLabel(historyItem.result);
+
+    listItem.append(attempt, number, result);
+    elements.historyList.append(listItem);
+  });
+
+  if (gameState.history.length > 0) {
+    elements.historyList.scrollTop = elements.historyList.scrollHeight;
+  }
+}
+
+function getResultLabel(result) {
+  const labels = {
+    [RESULT.UP]: "UP",
+    [RESULT.DOWN]: "DOWN",
+    [RESULT.CORRECT]: "정답",
+  };
+
+  return labels[result] ?? "";
+}
+
+function setResultMessage({ type, icon, title, description }) {
+  elements.resultBox.className = "result-box";
+
+  if (type) {
+    elements.resultBox.classList.add(type);
+  }
+
+  elements.resultIcon.textContent = icon;
+  elements.resultTitle.textContent = title;
+  elements.resultDescription.textContent = description;
+
+  elements.resultBox.classList.remove("animate");
+  void elements.resultBox.offsetWidth;
+  elements.resultBox.classList.add("animate");
+}
+
+function showValidationMessage(message) {
+  elements.validationMessage.textContent = message;
+  elements.input.classList.add("input-error");
+  elements.input.setAttribute("aria-invalid", "true");
+  elements.input.focus();
+}
+
+function clearValidationMessage() {
+  elements.validationMessage.textContent = "";
+  elements.input.classList.remove("input-error");
+  elements.input.removeAttribute("aria-invalid");
+}
+
+elements.form.addEventListener("submit", handleSubmit);
+elements.restartButton.addEventListener("click", restartGame);
+elements.themeToggle.addEventListener("click", toggleTheme);
+
+elements.input.addEventListener("input", () => {
+  if (elements.validationMessage.textContent) {
+    clearValidationMessage();
+  }
+});
+
+initializeTheme();
+restartGame();
+
+});
+  </script>
+</body>
+</html>
